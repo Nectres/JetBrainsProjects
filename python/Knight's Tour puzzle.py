@@ -17,7 +17,10 @@ class KnightTour:
         moves = self.get_moves_for_knight()
 
         for pos in moves:
-            self.board[pos[1]][pos[0]] = self.possible_move
+            possible_moves = self.get_moves_for_knight(pos[0], pos[1])
+            num_of_moves = len(possible_moves)
+            self.board[pos[1]][pos[0]] = str(
+                num_of_moves).rjust(self.cell_size, " ")
 
         print(self.border)
         for i in range(self.rows-1, -1, -1):
@@ -31,13 +34,15 @@ class KnightTour:
             print(str(i).rjust(self.cell_size, ' '), end=' ')
 
     def get_knight_pos(self):
-        col, row = self.get_dimensions("Enter the knight's starting position: ", lambda x: 0 <= x <= self.cols-1, lambda y: 0 <= y <= self.rows-1)
+        col, row = self.get_dimensions("Enter the knight's starting position: ",
+                                       lambda x: 0 <= x <= self.cols-1, lambda y: 0 <= y <= self.rows-1)
         self.board[row][col] = self.knight
         self.knight_pos = (col, row)
 
-    def get_moves_for_knight(self):
-        x = self.knight_pos[0]
-        y = self.knight_pos[1]
+    def get_moves_for_knight(self, x=None, y=None):
+        if not x:
+            x = self.knight_pos[0]
+            y = self.knight_pos[1]
         moves = []
 
         for i in [-1, 1]:
@@ -48,7 +53,8 @@ class KnightTour:
             for j in [2, -2]:
                 moves.append((x+j, y+i))
 
-        inside_board = tuple(pos for pos in moves if 0 <= pos[0] < self.cols and 0 <= pos[1] < self.rows)
+        inside_board = tuple(pos for pos in moves if 0 <=
+                             pos[0] < self.cols and 0 <= pos[1] < self.rows)
         return inside_board
 
     def get_dimensions(self, prompt: str, check_x, check_y=None, decrement=True):
