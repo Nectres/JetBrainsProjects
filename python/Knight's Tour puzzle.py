@@ -18,7 +18,10 @@ class KnightTour:
 
         for pos in moves:
             possible_moves = self.get_moves_for_knight(pos[0], pos[1])
-            num_of_moves = len(possible_moves)
+            # - 1 to not revisit this position
+            num_of_moves = len(possible_moves) - 1
+            if num_of_moves < 0:
+                num_of_moves = 0
             self.board[pos[1]][pos[0]] = str(
                 num_of_moves).rjust(self.cell_size, " ")
 
@@ -55,6 +58,7 @@ class KnightTour:
 
         inside_board = tuple(pos for pos in moves if 0 <=
                              pos[0] < self.cols and 0 <= pos[1] < self.rows)
+
         return inside_board
 
     def get_dimensions(self, prompt: str, check_x, check_y=None, decrement=True):
