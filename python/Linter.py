@@ -3,7 +3,7 @@ from typing import Dict
 import os.path as path
 import os
 import sys
-
+import re
 
 class ProblemStack:
     def __init__(self, fullpath: str) -> None:
@@ -84,6 +84,17 @@ class Linter:
                         "S004", "At least two spaces required before inline comments")
                 if comments.lower().find("todo") != -1:
                     problems.add("S005", "TODO found")
+                if re.search('(def|class)\s{2,}', line) is not None: # matches two or more spaces after def / class keyword
+                    problems.add('S007', "Too many spaces after 'class'")
+                snake_case_class = re.search('class\s*([a-z]+_?)+', line) # matches snake case class names 
+                if snake_case_class is not None:
+                    class_name = snake_case_class.group(1)
+                    problems.add('S008', f"Class name '{class_name}' should use CamelCase")
+                camel_case_fn = re.search('def\s*([A-Z][a-z0-9]*)', line) # matches camelCase function definitions
+                if camel_case_fn is not None: 
+                    function_name = camel_case_fn.group(1)
+                    problems.add('S009', f"Function name '{function_name}' should use snake_case")
+                
                 problems.next_line()
             return problems
 
