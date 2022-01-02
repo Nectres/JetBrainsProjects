@@ -1,28 +1,47 @@
 import re
+from typing import Dict
+import os.path as path
+import os
+import sys
 
 
 class ProblemStack:
-    def __init__(self, line_no: int) -> None:
-        self.problems = {}
-        self.line_no = line_no
+    def __init__(self, fullpath: str) -> None:
+        self.path = fullpath
+        self.line_no = 1
+        self.problems = {1: {}}
+
+    def next_line(self):
+        self.line_no += 1
+        self.problems[self.line_no] = {}
 
     def add(self, code: str, message: str):
-        self.problems[code] = message
+        self.problems[self.line_no][code] = message
 
     def print(self):
-        keys = list(self.problems.keys())
-        keys.sort()
-        for code in keys:
-            msg = self.problems[code]
-            print(f'Line {self.line_no}: {code} {msg}')
+        lines = list(self.problems.keys())
+        lines.sort()
+        for line in lines:
+            codes = list(self.problems[line].keys())
+            codes.sort()
+            for code in codes:
+                msg = self.problems[line][code]
+                print(f'{self.path}: Line {line}: {code} {msg}')
 
 
 class Linter:
-    def __init__(self, filename) -> None:
-        self.filename = filename
+
+    def __init__(self, fullpath: str) -> None:
+        self.path = fullpath
+        if path.isdir(fullpath):
+            files = os.listdir(fullpath)
+            self.multiple = True
+            self.files = files
+        elif path.isfile(fullpath):
+            self.multiple = False
 
     def get_no_of_spaces(self, line: str):
-        return (len(line) - len(line.lstrip()))
+        return len(line) - len(line.lstrip())
 
     def get_comment(self, line: str):
         # remove all strings from the line
@@ -34,13 +53,14 @@ class Linter:
             return line_without_str[:comments.start() + 1], line_without_str[comments.end():], space_between
         return line_without_str, '', 0
 
-    def check(self):
-        with open(self.filename) as file:
+    def check(self, fullpath):
+        with open(fullpath) as file:
             blank_lines_before_code = 0
-            for line_no, line in enumerate(file, 1):
-                problems = ProblemStack(line_no)
+            problems = ProblemStack(fullpath)
+            for line in file:
                 if len(line.strip()) == 0:  # blank line
                     blank_lines_before_code += 1
+                    problems.next_line()
                     continue
                 if blank_lines_before_code > 2:
                     problems.add("S006", "More than two blank lines used before this line")
@@ -52,24 +72,39 @@ class Linter:
                 if line.startswith('#'):
                     plain_line = ''
                     comments = line
-                    space_between = 2 # incorrect, but prevents checking
+                    space_between = 2  # incorrect, but prevents checking
                 else:
-                    plain_line, comments, space_between = self.get_comment(line)
+                    plain_line, comments, space_between = self.get_comment(
+                        line)
                 # print(line_no, plain_line, space_between, len(comments))
                 if plain_line.find(";") != -1:
                     problems.add("S003", 'Unnecessary semicolon')
                 if len(comments.strip()) > 0 and space_between < 2:
-                    problems.add("S004", "At least two spaces required before inline comments")
+                    problems.add(
+                        "S004", "At least two spaces required before inline comments")
                 if comments.lower().find("todo") != -1:
                     problems.add("S005", "TODO found")
+                problems.next_line()
+            return problems
 
-                problems.print()
+    def start(self):
+        if not self.multiple:
+            stack = self.check(self.path)
+            stack.print()
+        else:
+            stacks: Dict[str, ProblemStack] = {}
+            python_files = [file for file in self.files if file.endswith('.py')]
+            for file in python_files:
+                fullpath = path.join(self.path, file)
+                stacks[file] = self.check(fullpath)
+            python_files.sort()
+            for file in python_files:
+                stacks[file].print()
 
 
 def main():
-    file_name = input()
-    linter = Linter(file_name)
-    linter.check()
+    linter = Linter(sys.argv[1])
+    linter.start()
 
 
 if __name__ == '__main__':
